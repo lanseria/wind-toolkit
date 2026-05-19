@@ -70,8 +70,8 @@ python -m src.wind_toolkit.main --acquire-only
 # 仅生成地图（使用已有数据）
 python -m src.wind_toolkit.main --process-only
 
-# 定时执行模式，每 5 分钟运行一次
-python -m src.wind_toolkit.main --schedule 5
+# 按 GFS 周期智能调度（00/06/12/18 UTC + 延迟后自动运行）
+python -m src.wind_toolkit.main --schedule
 
 # 获取 48 小时预报
 python -m src.wind_toolkit.main --forecast-hours 48
@@ -83,7 +83,7 @@ python -m src.wind_toolkit.main --forecast-hours 48
 # 构建镜像
 docker compose build
 
-# 后台运行（默认每 30 分钟定时执行流水线）
+# 后台运行（按 GFS 周期智能调度）
 docker compose up -d
 
 # 查看日志
@@ -108,9 +108,10 @@ data/
 outputs/
   textures/
     YYYYMMDD_HHMM.png    # 风场地图 PNG
-  tiles/
-    {z}/{x}/{y}/
-      YYYYMMDD_HHMM.png  # XYZ 瓦片（Web Mercator，zoom 3-8）
+wind-tiles/
+  tiles_manifest.json     # 瓦片清单（lastUpdated + Unix 时间戳数组）
+  {z}/{x}/{y}/
+    YYYYMMDD_HHMM.png    # XYZ 瓦片（Web Mercator，zoom 3-8）
 ```
 
 ## 项目结构
@@ -121,8 +122,8 @@ src/wind_toolkit/
   data_acquisition.py    # NOMADS GRIB Filter 下载、自动周期检测、合并裁切
   processor.py           # NetCDF 加载、变量名识别、逐帧地图生成与瓦片切割调度
   map_visualizer.py      # 暗色主题风场地图渲染：字体、colormap、cartopy 绘图
-  tile_generator.py      # XYZ 瓦片生成：PlateCarree→Web Mercator 重投影切割
-  main.py                # CLI 入口
+  tile_generator.py      # XYZ 瓦片生成：PlateCarree→Web Mercator 重投影切割 + 瓦片清单 manifest
+  main.py                # CLI 入口：完整流水线 / GFS 周期智能调度 / 单阶段执行
   utils.py               # 通用工具：logger、时区转换、时间戳格式化
 ```
 

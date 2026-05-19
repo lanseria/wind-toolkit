@@ -62,4 +62,4 @@ VOLUME /app/outputs
 
 # --- 8. 入口 ---
 ENTRYPOINT ["python", "-m", "src.wind_toolkit.main"]
-CMD ["--schedule", "30"]
+CMD ["--schedule"]

@@ -8,7 +8,7 @@ import xarray as xr
 
 from . import config
 from .map_visualizer import generate_wind_map
-from .tile_generator import generate_tiles
+from .tile_generator import generate_wind_tiles, update_tiles_manifest
 from .utils import format_timestamp, setup_logger
 
 logger = setup_logger("wind_toolkit.processor")
@@ -44,10 +44,12 @@ def process_to_textures(nc_path: Path) -> list[Path]:
 
     times = ds.time.values
     output_files: list[Path] = []
+    datetimes: list[datetime] = []
 
     for i, t_np in enumerate(times):
         t = _to_datetime(t_np)
         stamp = format_timestamp(t)
+        datetimes.append(t)
 
         u_data = ds[u_var].isel(time=i).values
         v_data = ds[v_var].isel(time=i).values
@@ -55,13 +57,14 @@ def process_to_textures(nc_path: Path) -> list[Path]:
         out_path = config.TEXTURES_DIR / f"{stamp}.png"
         generate_wind_map(u_data, v_data, lat_vals, lon_vals, t, out_path)
 
-        generate_tiles(out_path, stamp)
+        generate_wind_tiles(u_data, v_data, lat_vals, lon_vals, stamp)
 
         output_files.append(out_path)
         if (i + 1) % 5 == 0 or i == len(times) - 1:
             logger.info(f"  进度: {i + 1}/{len(times)} 帧")
 
     ds.close()
+    update_tiles_manifest(datetimes)
     logger.info(f"地图生成完成: {len(output_files)} 张 → {config.TEXTURES_DIR}")
     return output_files
 

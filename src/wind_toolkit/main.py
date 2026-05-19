@@ -3,6 +3,7 @@
 import argparse
 import sys
 import time
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from . import config
@@ -50,19 +51,57 @@ def run_full_workflow(forecast_hours: int | None = None) -> None:
     logger.info(f"流水线完成，共生成 {len(textures)} 张风场地图。")
 
 
-def run_scheduled(
-    interval_minutes: int = 5, forecast_hours: int | None = None
-) -> None:
-    """定时执行流水线。"""
-    logger.info(f"定时模式启动，每 {interval_minutes} 分钟执行一次。按 Ctrl+C 停止。")
+def _next_gfs_time() -> datetime:
+    """计算下一个 GFS 数据可用时间。
+
+    GFS 在 00/06/12/18 UTC 发布，延迟约 GFS_LATENCY_HOURS 后可下载。
+    返回下一次应该执行流水线的 UTC 时间。
+    """
+    now = datetime.now(timezone.utc)
+    latency = config.GFS_LATENCY_HOURS
+
+    # 每个周期在 cycle_hour + latency 后可用
+    for cycle_hour in config.GFS_CYCLE_HOURS:
+        available_at = now.replace(
+            hour=cycle_hour, minute=0, second=0, microsecond=0
+        ) + timedelta(hours=latency)
+        if available_at > now:
+            return available_at
+
+    # 今天所有周期都过了，取明天第一个
+    tomorrow = now + timedelta(days=1)
+    return tomorrow.replace(
+        hour=config.GFS_CYCLE_HOURS[0], minute=0, second=0, microsecond=0
+    ) + timedelta(hours=latency)
+
+
+def run_scheduled(forecast_hours: int | None = None) -> None:
+    """按 GFS 数据发布周期智能调度。
+
+    在每个 GFS 周期数据可用后自动运行流水线（00/06/12/18 UTC + 延迟），
+    而非固定间隔轮询。
+    """
+    logger.info(
+        f"GFS 智能调度模式启动，延迟 {config.GFS_LATENCY_HOURS} 小时。按 Ctrl+C 停止。"
+    )
     while True:
+        next_time = _next_gfs_time()
+        now = datetime.now(timezone.utc)
+        wait_seconds = (next_time - now).total_seconds()
+
+        beijing_tz = timezone(timedelta(hours=8))
+        logger.info(
+            f"下次执行: {next_time.astimezone(beijing_tz).strftime('%Y-%m-%d %H:%M')} 北京时间"
+            f"（等待 {int(wait_seconds // 60)} 分钟）"
+        )
+
+        time.sleep(max(0, wait_seconds))
+
         try:
-            logger.info("----- 新一轮执行 -----")
+            logger.info("----- GFS 数据更新，开始执行 -----")
             run_full_workflow(forecast_hours)
         except Exception as e:
             logger.error(f"流水线异常: {e}")
-        logger.info(f"等待 {interval_minutes} 分钟后执行下一轮...")
-        time.sleep(interval_minutes * 60)
 
 
 def main() -> None:
@@ -77,11 +116,8 @@ def main() -> None:
     )
     parser.add_argument(
         "--schedule",
-        type=int,
-        metavar="MINUTES",
-        nargs="?",
-        const=5,
-        help="定时执行模式，默认每 5 分钟",
+        action="store_true",
+        help="按 GFS 数据发布周期智能调度",
     )
     parser.add_argument(
         "--forecast-hours",
@@ -92,8 +128,8 @@ def main() -> None:
 
     args = parser.parse_args()
 
-    if args.schedule is not None:
-        run_scheduled(args.schedule, args.forecast_hours)
+    if args.schedule:
+        run_scheduled(args.forecast_hours)
     elif args.acquire_only:
         run_acquisition(args.forecast_hours)
     elif args.process_only:

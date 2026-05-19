@@ -18,7 +18,8 @@ RAW_DATA_DIR: Path = DATA_DIR / "raw"
 PROCESSED_DATA_DIR: Path = DATA_DIR / "processed"
 OUTPUTS_DIR: Path = PROJECT_ROOT.parent / "outputs"
 TEXTURES_DIR: Path = OUTPUTS_DIR / "textures"
-TILE_OUTPUT_DIR: Path = OUTPUTS_DIR / "tiles"
+TILE_OUTPUT_DIR: Path = PROJECT_ROOT.parent / "wind-tiles"
+TILE_MANIFEST_PATH: Path = TILE_OUTPUT_DIR / "tiles_manifest.json"
 
 for _d in (RAW_DATA_DIR, PROCESSED_DATA_DIR, TEXTURES_DIR, TILE_OUTPUT_DIR):
     _d.mkdir(parents=True, exist_ok=True)

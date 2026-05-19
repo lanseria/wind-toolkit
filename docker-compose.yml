@@ -8,6 +8,7 @@ services:
     volumes:
       - wind-data:/app/data
       - wind-outputs:/app/outputs
+      - ${TILES_HOST_PATH:-./wind-tiles}:/app/wind-tiles
     env_file:
       - .env
     # 默认定时模式（--schedule 30），可通过 command 覆盖：
