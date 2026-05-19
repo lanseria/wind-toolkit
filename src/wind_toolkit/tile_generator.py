@@ -257,13 +257,18 @@ def generate_wind_tiles(
     return total
 
 
-def update_tiles_manifest(datetimes: list[datetime]) -> None:
+def update_tiles_manifest(
+    datetimes: list[datetime],
+    manifest_path: Path | None = None,
+) -> None:
     """更新瓦片资源清单文件。
 
     Args:
         datetimes: datetime 对象列表
+        manifest_path: 清单文件路径，为 None 时不更新
     """
-    manifest_path = config.TILE_MANIFEST_PATH
+    if manifest_path is None:
+        return
     now = datetime.now().astimezone().isoformat()
 
     # 转为 Unix 时间戳（秒）

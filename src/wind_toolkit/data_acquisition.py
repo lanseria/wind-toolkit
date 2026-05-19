@@ -16,6 +16,7 @@ def _build_grib_filter_url(
     date: datetime,
     cycle: int,
     forecast_hour: int,
+    grib_level: str,
 ) -> str:
     """构造 NOMADS GRIB filter 请求 URL。"""
     area = config.DOWNLOAD_AREA
@@ -23,7 +24,7 @@ def _build_grib_filter_url(
     return (
         f"{config.GFS_URL_BASE}?"
         f"file=gfs.t{cycle:02d}z.pgrb2.0p25.f{forecast_hour:03d}"
-        f"&lev_10_m_above_ground=on"
+        f"&{grib_level}=on"
         f"&var_UGRD=on&var_VGRD=on"
         f"&subregion="
         f"&leftlon={int(area['west'])}&rightlon={int(area['east'])}"
@@ -32,9 +33,9 @@ def _build_grib_filter_url(
     )
 
 
-def _check_cycle_available(date: datetime, cycle: int) -> bool:
+def _check_cycle_available(date: datetime, cycle: int, grib_level: str) -> bool:
     """检查指定 GFS 周期的 f000 数据是否可用。"""
-    url = _build_grib_filter_url(date, cycle, 0)
+    url = _build_grib_filter_url(date, cycle, 0, grib_level)
     try:
         resp = requests.get(url, timeout=30, stream=True)
         if resp.status_code == 200:
@@ -47,7 +48,7 @@ def _check_cycle_available(date: datetime, cycle: int) -> bool:
     return False
 
 
-def _find_latest_cycle() -> tuple[datetime, int]:
+def _find_latest_cycle(grib_level: str) -> tuple[datetime, int]:
     """查找最新可用的 GFS 预报周期。"""
     now = datetime.now(timezone.utc)
     available_after = now - timedelta(hours=config.GFS_LATENCY_HOURS)
@@ -59,7 +60,7 @@ def _find_latest_cycle() -> tuple[datetime, int]:
             hour=cycle, minute=0, second=0, microsecond=0
         )
 
-        if _check_cycle_available(cycle_time, cycle):
+        if _check_cycle_available(cycle_time, cycle, grib_level):
             logger.info(
                 f"最新 GFS 周期: {cycle_time.strftime('%Y-%m-%d %H:%M')} UTC"
             )
@@ -72,10 +73,13 @@ def _download_forecast_hour(
     date: datetime,
     cycle: int,
     forecast_hour: int,
+    grib_level: str,
+    level_dir: Path,
 ) -> Path | None:
     """下载单个预报时刻的 GRIB2 子集，返回文件路径或 None。"""
+    level_dir.mkdir(parents=True, exist_ok=True)
     out_path = (
-        config.RAW_DATA_DIR
+        level_dir
         / f"gfs_{date.strftime('%Y%m%d')}_{cycle:02d}z_f{forecast_hour:03d}.grib2"
     )
 
@@ -83,7 +87,7 @@ def _download_forecast_hour(
         logger.info(f"已存在，跳过: {out_path.name}")
         return out_path
 
-    url = _build_grib_filter_url(date, cycle, forecast_hour)
+    url = _build_grib_filter_url(date, cycle, forecast_hour, grib_level)
     logger.info(f"下载: f{forecast_hour:03d}")
 
     try:
@@ -102,34 +106,39 @@ def _download_forecast_hour(
 
 
 def download_gfs_wind(
+    level: dict,
     forecast_hours: int | None = None,
 ) -> list[Path]:
-    """下载 GFS 10m 风场数据，返回 GRIB2 文件路径列表。"""
+    """下载 GFS 风场数据，返回 GRIB2 文件路径列表。"""
     if forecast_hours is None:
         forecast_hours = config.GFS_FORECAST_HOURS
 
-    cycle_time, cycle = _find_latest_cycle()
+    grib_level = level["grib_param"]
+    level_dir = config.raw_data_dir_for_level(level["hpa"])
+
+    cycle_time, cycle = _find_latest_cycle(grib_level)
     logger.info(
-        f"下载 GFS 风场数据: {cycle_time.strftime('%Y-%m-%d %H:%M')} UTC, "
+        f"[{level['label']}] 下载 GFS 风场数据: "
+        f"{cycle_time.strftime('%Y-%m-%d %H:%M')} UTC, "
         f"预报 0-{forecast_hours} 小时"
     )
 
     downloaded: list[Path] = []
     for h in range(forecast_hours + 1):
-        path = _download_forecast_hour(cycle_time, cycle, h)
+        path = _download_forecast_hour(cycle_time, cycle, h, grib_level, level_dir)
         if path:
             downloaded.append(path)
 
-    logger.info(f"下载完成，共 {len(downloaded)} 个文件")
+    logger.info(f"[{level['label']}] 下载完成，共 {len(downloaded)} 个文件")
     return downloaded
 
 
-def merge_and_crop(files: list[Path]) -> Path:
+def merge_and_crop(files: list[Path], level: dict) -> Path:
     """合并多个 GRIB2 文件并裁切到展示区域，输出为 NetCDF。"""
     if not files:
         raise FileNotFoundError("没有可处理的数据文件。")
 
-    logger.info(f"合并 {len(files)} 个 GRIB2 文件...")
+    logger.info(f"[{level['label']}] 合并 {len(files)} 个 GRIB2 文件...")
 
     frames = []
     for f in sorted(files):
@@ -138,7 +147,7 @@ def merge_and_crop(files: list[Path]) -> Path:
             # cfgrib 用 time 表示分析时间（所有文件相同），valid_time 才是有效时间
             vt = ds.valid_time.values
             ds = ds.drop_vars(
-                ["time", "step", "valid_time", "heightAboveGround"],
+                ["time", "step", "valid_time", "isobaricInhPa"],
                 errors="ignore",
             )
             ds = ds.expand_dims(time=[vt])
@@ -175,9 +184,11 @@ def merge_and_crop(files: list[Path]) -> Path:
         }
     )
 
-    out_path = config.PROCESSED_DATA_DIR / "wind_merged.nc"
+    out_dir = config.processed_data_dir_for_level(level["hpa"])
+    out_dir.mkdir(parents=True, exist_ok=True)
+    out_path = out_dir / "wind_merged.nc"
     cropped.to_netcdf(out_path)
-    logger.info(f"合并裁切完成: {out_path}")
+    logger.info(f"[{level['label']}] 合并裁切完成: {out_path}")
 
     for ds in frames:
         ds.close()

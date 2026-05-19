@@ -12,43 +12,67 @@ from .utils import setup_logger
 logger = setup_logger("wind_toolkit.main")
 
 
-def run_acquisition(forecast_hours: int | None = None) -> list[Path]:
+def _get_levels(level_hpa: int | None = None) -> list[dict]:
+    """获取要处理的等压面层列表。"""
+    if level_hpa is not None:
+        for lv in config.PRESSURE_LEVELS:
+            if lv["hpa"] == level_hpa:
+                return [lv]
+        logger.error(f"未知等压面层: {level_hpa} hPa")
+        logger.info(f"可用层: {', '.join(str(lv['hpa']) for lv in config.PRESSURE_LEVELS)}")
+        sys.exit(1)
+    return config.PRESSURE_LEVELS
+
+
+def run_acquisition(forecast_hours: int | None = None, level_hpa: int | None = None) -> list[Path]:
     """执行数据下载阶段。"""
     from .data_acquisition import download_gfs_wind, merge_and_crop
 
-    raw_files = download_gfs_wind(forecast_hours)
-    if not raw_files:
-        logger.error("未下载到任何数据。")
-        return []
-    merged = merge_and_crop(raw_files)
-    return [merged]
+    levels = _get_levels(level_hpa)
+    merged_files: list[Path] = []
+
+    for level in levels:
+        logger.info(f"========== {level['label']} ({level['height']}) ==========")
+        raw_files = download_gfs_wind(level, forecast_hours)
+        if not raw_files:
+            logger.warning(f"[{level['label']}] 未下载到任何数据。")
+            continue
+        merged = merge_and_crop(raw_files, level)
+        merged_files.append(merged)
+
+    return merged_files
 
 
-def run_processing(nc_path: Path | None = None) -> list[Path]:
+def run_processing(level_hpa: int | None = None) -> list[Path]:
     """执行地图可视化阶段。"""
     from .processor import process_to_textures
 
-    if nc_path is None:
-        nc_path = config.PROCESSED_DATA_DIR / "wind_merged.nc"
-    if not nc_path.exists():
-        logger.error(f"找不到合并数据文件: {nc_path}")
-        return []
-    return process_to_textures(nc_path)
+    levels = _get_levels(level_hpa)
+    all_outputs: list[Path] = []
+
+    for level in levels:
+        nc_path = config.processed_data_dir_for_level(level["hpa"]) / "wind_merged.nc"
+        if not nc_path.exists():
+            logger.warning(f"[{level['label']}] 找不到数据文件: {nc_path}")
+            continue
+        outputs = process_to_textures(nc_path, level)
+        all_outputs.extend(outputs)
+
+    return all_outputs
 
 
-def run_full_workflow(forecast_hours: int | None = None) -> None:
+def run_full_workflow(forecast_hours: int | None = None, level_hpa: int | None = None) -> None:
     """完整流水线: 下载 → 合并裁切 → 地图可视化。"""
     logger.info("=" * 60)
     logger.info("Wind Toolkit 完整流水线启动")
 
-    merged_files = run_acquisition(forecast_hours)
+    merged_files = run_acquisition(forecast_hours, level_hpa)
     if not merged_files:
         logger.error("数据获取失败，终止。")
         sys.exit(1)
 
-    nc_path = merged_files[0]
-    textures = run_processing(nc_path)
-    logger.info(f"流水线完成，共生成 {len(textures)} 张风场地图。")
+    run_processing(level_hpa)
+    logger.info("流水线完成。")
 
 
 def _next_gfs_time() -> datetime:
@@ -75,7 +99,7 @@ def _next_gfs_time() -> datetime:
     ) + timedelta(hours=latency)
 
 
-def run_scheduled(forecast_hours: int | None = None) -> None:
+def run_scheduled(forecast_hours: int | None = None, level_hpa: int | None = None) -> None:
     """按 GFS 数据发布周期智能调度。
 
     在每个 GFS 周期数据可用后自动运行流水线（00/06/12/18 UTC + 延迟），
@@ -99,7 +123,7 @@ def run_scheduled(forecast_hours: int | None = None) -> None:
 
         try:
             logger.info("----- GFS 数据更新，开始执行 -----")
-            run_full_workflow(forecast_hours)
+            run_full_workflow(forecast_hours, level_hpa)
         except Exception as e:
             logger.error(f"流水线异常: {e}")
 
@@ -125,17 +149,23 @@ def main() -> None:
         default=config.GFS_FORECAST_HOURS,
         help=f"预报时长（小时），默认 {config.GFS_FORECAST_HOURS}",
     )
+    parser.add_argument(
+        "--level",
+        type=int,
+        default=None,
+        help=f"指定等压面层（hPa），如 850。默认处理所有层: {', '.join(str(l['hpa']) for l in config.PRESSURE_LEVELS)}",
+    )
 
     args = parser.parse_args()
 
     if args.schedule:
-        run_scheduled(args.forecast_hours)
+        run_scheduled(args.forecast_hours, args.level)
     elif args.acquire_only:
-        run_acquisition(args.forecast_hours)
+        run_acquisition(args.forecast_hours, args.level)
     elif args.process_only:
-        run_processing()
+        run_processing(args.level)
     else:
-        run_full_workflow(args.forecast_hours)
+        run_full_workflow(args.forecast_hours, args.level)
 
 
 if __name__ == "__main__":

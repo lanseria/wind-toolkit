@@ -18,10 +18,45 @@ RAW_DATA_DIR: Path = DATA_DIR / "raw"
 PROCESSED_DATA_DIR: Path = DATA_DIR / "processed"
 OUTPUTS_DIR: Path = PROJECT_ROOT.parent / "outputs"
 TEXTURES_DIR: Path = OUTPUTS_DIR / "textures"
-TILE_OUTPUT_DIR: Path = PROJECT_ROOT.parent / "wind-tiles"
-TILE_MANIFEST_PATH: Path = TILE_OUTPUT_DIR / "tiles_manifest.json"
+WIND_TILES_ROOT: Path = PROJECT_ROOT.parent / "wind-tiles"
 
-for _d in (RAW_DATA_DIR, PROCESSED_DATA_DIR, TEXTURES_DIR, TILE_OUTPUT_DIR):
+# ── 等压面层定义 ───────────────────────────────────────────────────────
+PRESSURE_LEVELS: list[dict] = [
+    {"hpa": 1000, "label": "1000 hPa", "height": "~100 m", "grib_param": "lev_1000_mb"},
+    {"hpa": 850,  "label": "850 hPa",  "height": "~1,500 m", "grib_param": "lev_850_mb"},
+    {"hpa": 700,  "label": "700 hPa",  "height": "~3,000 m", "grib_param": "lev_700_mb"},
+    {"hpa": 500,  "label": "500 hPa",  "height": "~5,500 m", "grib_param": "lev_500_mb"},
+    {"hpa": 300,  "label": "300 hPa",  "height": "~9,000 m", "grib_param": "lev_300_mb"},
+    {"hpa": 250,  "label": "250 hPa",  "height": "~10,000 m", "grib_param": "lev_250_mb"},
+    {"hpa": 200,  "label": "200 hPa",  "height": "~12,000 m", "grib_param": "lev_200_mb"},
+    {"hpa": 100,  "label": "100 hPa",  "height": "~16,000 m", "grib_param": "lev_100_mb"},
+]
+
+
+def level_key(hpa: int) -> str:
+    return f"{hpa}hPa"
+
+
+def tile_dir_for_level(hpa: int) -> Path:
+    return WIND_TILES_ROOT / level_key(hpa)
+
+
+def tile_manifest_for_level(hpa: int) -> Path:
+    return tile_dir_for_level(hpa) / "tiles_manifest.json"
+
+
+def textures_dir_for_level(hpa: int) -> Path:
+    return TEXTURES_DIR / level_key(hpa)
+
+
+def raw_data_dir_for_level(hpa: int) -> Path:
+    return RAW_DATA_DIR / level_key(hpa)
+
+
+def processed_data_dir_for_level(hpa: int) -> Path:
+    return PROCESSED_DATA_DIR / level_key(hpa)
+
+for _d in (RAW_DATA_DIR, PROCESSED_DATA_DIR, TEXTURES_DIR, WIND_TILES_ROOT):
     _d.mkdir(parents=True, exist_ok=True)
 
 # ── GFS 数据源 ─────────────────────────────────────────────────────────

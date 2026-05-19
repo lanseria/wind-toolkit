@@ -14,26 +14,27 @@ from .utils import format_timestamp, setup_logger
 logger = setup_logger("wind_toolkit.processor")
 
 
-def process_to_textures(nc_path: Path) -> list[Path]:
+def process_to_textures(nc_path: Path, level: dict) -> list[Path]:
     """将合并后的 NetCDF 处理为风场地图可视化 PNG。
 
     Args:
         nc_path: 合并裁切后的 NetCDF 文件路径
+        level: 等压面层配置（来自 config.PRESSURE_LEVELS）
 
     Returns:
         生成的 PNG 文件路径列表
     """
     ds = xr.open_dataset(nc_path)
-    logger.info(f"加载 NetCDF: {ds.dims}, 时间范围 {ds.time.values[0]} ~ {ds.time.values[-1]}")
+    logger.info(f"[{level['label']}] 加载 NetCDF: {ds.dims}, 时间范围 {ds.time.values[0]} ~ {ds.time.values[-1]}")
 
     # 识别变量名
     var_names = list(ds.data_vars)
     u_var = next(
-        (v for v in var_names if v.lower() in ("u10", "ugrd", "10m_u_component_of_wind")),
+        (v for v in var_names if v.lower() in ("u", "ugrd")),
         var_names[0],
     )
     v_var = next(
-        (v for v in var_names if v.lower() in ("v10", "vgrd", "10m_v_component_of_wind")),
+        (v for v in var_names if v.lower() in ("v", "vgrd")),
         var_names[1] if len(var_names) > 1 else var_names[0],
     )
 
@@ -46,6 +47,13 @@ def process_to_textures(nc_path: Path) -> list[Path]:
     output_files: list[Path] = []
     datetimes: list[datetime] = []
 
+    textures_dir = config.textures_dir_for_level(level["hpa"])
+    textures_dir.mkdir(parents=True, exist_ok=True)
+    tile_dir = config.tile_dir_for_level(level["hpa"])
+    tile_dir.mkdir(parents=True, exist_ok=True)
+    manifest_path = config.tile_manifest_for_level(level["hpa"])
+    level_label = f"{level['label']} ({level['height']})"
+
     for i, t_np in enumerate(times):
         t = _to_datetime(t_np)
         stamp = format_timestamp(t)
@@ -54,18 +62,18 @@ def process_to_textures(nc_path: Path) -> list[Path]:
         u_data = ds[u_var].isel(time=i).values
         v_data = ds[v_var].isel(time=i).values
 
-        out_path = config.TEXTURES_DIR / f"{stamp}.png"
-        generate_wind_map(u_data, v_data, lat_vals, lon_vals, t, out_path)
+        out_path = textures_dir / f"{stamp}.png"
+        generate_wind_map(u_data, v_data, lat_vals, lon_vals, t, out_path, level_label)
 
-        generate_wind_tiles(u_data, v_data, lat_vals, lon_vals, stamp)
+        generate_wind_tiles(u_data, v_data, lat_vals, lon_vals, stamp, output_dir=tile_dir)
 
         output_files.append(out_path)
         if (i + 1) % 5 == 0 or i == len(times) - 1:
-            logger.info(f"  进度: {i + 1}/{len(times)} 帧")
+            logger.info(f"  [{level['label']}] 进度: {i + 1}/{len(times)} 帧")
 
     ds.close()
-    update_tiles_manifest(datetimes)
-    logger.info(f"地图生成完成: {len(output_files)} 张 → {config.TEXTURES_DIR}")
+    update_tiles_manifest(datetimes, manifest_path)
+    logger.info(f"[{level['label']}] 地图生成完成: {len(output_files)} 张 → {textures_dir}")
     return output_files
 
 

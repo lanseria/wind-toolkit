@@ -65,6 +65,7 @@ def generate_wind_map(
     lon: np.ndarray,
     timestamp: datetime,
     output_path: Path,
+    level_label: str | None = None,
 ) -> Path:
     """生成风场暗色主题地图。
 
@@ -203,8 +204,9 @@ def generate_wind_map(
     # 标题
     t_str = timestamp.strftime("%Y-%m-%d %H:%M UTC")
     bj_str = timestamp.astimezone(config.BEIJING_TZ).strftime("%Y-%m-%d %H:%M BJT")
+    prefix = f"Wind Field {level_label} - " if level_label else "Wind Field - "
     ax.set_title(
-        f"Wind Field - {t_str} ({bj_str})",
+        f"{prefix}{t_str} ({bj_str})",
         fontsize=16, color="white", pad=20,
     )
 
