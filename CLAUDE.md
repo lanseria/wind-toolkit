@@ -32,7 +32,7 @@ docker compose run --rm app --level 500 --forecast-hours 6  # 仅处理单层
 
 1. **数据获取** (`data_acquisition.py`): 循环 8 个等压面层，通过 NOMADS GRIB Filter 下载 GFS 0.25° 的 U/V 风场分量，自动检测最新可用预报周期，每个预报时刻下载一个 GRIB2 子集，合并裁切到展示区域后保存为 `data/processed/{level}/wind_merged.nc`
 2. **地图生成** (`processor.py` + `map_visualizer.py`): 加载 NetCDF → 逐帧调用 `generate_wind_map()` 生成暗色主题风场地图 PNG（标题含高度层信息），输出到 `outputs/textures/{level}/`
-3. **瓦片生成** (`tile_generator.py`): 将 PlateCarree 投影的风场地图切割为 Web Mercator XYZ 瓦片，缩放级别 3-8，输出到 `wind-tiles/{level}/{z}/{x}/{y}/{timestamp}.png`
+3. **瓦片生成** (`tile_generator.py`): 将 PlateCarree 投影的风场地图切割为 Web Mercator XYZ 瓦片，缩放级别 3-8，输出到 `wind-tiles/{level}/{z}/{x}/{y}/{unix_timestamp}.png`
 4. **瓦片清单** (`tile_generator.py`): 每层生成 `wind-tiles/{level}/tiles_manifest.json`，包含所有可用时间戳
 
 ### 等压面层定义

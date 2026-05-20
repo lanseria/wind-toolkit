@@ -4,14 +4,14 @@
 
 ## 瓦片结构
 
-瓦片按等压面层分目录存储：
+瓦片按等压面层分目录存储，文件名为 Unix 时间戳（秒），与 `tiles_manifest.json` 中的值完全一致：
 
 ```
 wind-tiles/
   850hPa/
     tiles_manifest.json          ← 该层可用时间戳清单
-    3/{x}/{y}/20260519_0000.png  ← 透明 RGBA PNG
-    3/{x}/{y}/20260519_0100.png
+    3/{x}/{y}/1779062400.png     ← 透明 RGBA PNG
+    3/{x}/{y}/1779066000.png
     ...
   500hPa/
     tiles_manifest.json
@@ -50,24 +50,10 @@ wind-tiles/
 }
 ```
 
-- `timestamps`: Unix 时间戳数组（秒），对应瓦片文件名中的时间部分
-- 将 Unix 时间戳格式化为 `YYYYMMDD_HHMM` 即可拼出文件名
+- `timestamps`: Unix 时间戳数组（秒），**直接就是瓦片文件名**
+- 拼接 URL：`${timestamps[i]}.png` 即可，无需任何格式转换
 
-**时间戳 → 文件名转换示例**（JavaScript）:
-
-```js
-function timestampToFilename(ts) {
-  const d = new Date(ts * 1000); // Unix 秒 → 毫秒
-  const yyyy = d.getUTCFullYear();
-  const MM = String(d.getUTCMonth() + 1).padStart(2, '0');
-  const dd = String(d.getUTCDate()).padStart(2, '0');
-  const HH = String(d.getUTCHours()).padStart(2, '0');
-  const mm = String(d.getUTCMinutes()).padStart(2, '0');
-  return `${yyyy}${MM}${dd}_${HH}${mm}`;
-}
-
-// timestampToFilename(1779062400) → "20260519_0000"
-```
+**示例**: `timestamps[0]` = `1779062400`，对应瓦片文件 `1779062400.png`
 
 ## MapLibre GL JS
 
@@ -81,7 +67,7 @@ const map = new maplibregl.Map({
   style: {
     version: 8,
     sources: {
-      // 底图（示例使用 MapTiler，可替换为任意底图）
+      // 底图（可替换为任意底图）
       basemap: {
         type: 'raster',
         tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
@@ -92,7 +78,7 @@ const map = new maplibregl.Map({
       wind: {
         type: 'raster',
         tiles: [
-          'https://your-tiles-server.com/wind-tiles/850hPa/{z}/{x}/{y}/20260519_0000.png'
+          'https://your-tiles-server.com/wind-tiles/850hPa/{z}/{x}/{y}/1779062400.png'
         ],
         tileSize: 256,
         minzoom: 3,
@@ -135,19 +121,11 @@ async function loadManifest() {
   return timestamps;
 }
 
-// 2. 时间戳 → 文件名
-function tsToName(ts) {
-  const d = new Date(ts * 1000);
-  const pad = (n) => String(n).padStart(2, '0');
-  return `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}_${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}`;
-}
-
-// 3. 更新瓦片图层
+// 2. 更新瓦片图层（时间戳即文件名，无需转换）
 function showFrame(index) {
-  const name = tsToName(timestamps[index]);
-  const url = `${TILE_BASE}/${LEVEL}/{z}/{x}/{y}/${name}.png`;
+  const ts = timestamps[index];
+  const url = `${TILE_BASE}/${LEVEL}/{z}/{x}/{y}/${ts}.png`;
 
-  // 方式 A: 移除旧图层，添加新图层
   if (map.getSource('wind')) {
     map.removeLayer('wind-layer');
     map.removeSource('wind');
@@ -167,11 +145,11 @@ function showFrame(index) {
   });
 
   // 更新 UI 显示时间
-  const time = new Date(timestamps[index] * 1000);
+  const time = new Date(ts * 1000);
   document.getElementById('time-label').textContent = time.toISOString();
 }
 
-// 4. 自动播放
+// 3. 自动播放
 function play(intervalMs = 1000) {
   return setInterval(() => {
     currentIndex = (currentIndex + 1) % timestamps.length;
@@ -191,17 +169,17 @@ loadManifest().then(() => {
 
 ```js
 const levels = [
-  { hpa: '850hPa', label: '850 hPa (~1,500 m)', color: '#00b4d8' },
-  { hpa: '500hPa', label: '500 hPa (~5,500 m)', color: '#fdffb6' },
-  { hpa: '250hPa', label: '250 hPa (~10,000 m)', color: '#f4845f' },
+  { hpa: '850hPa', label: '850 hPa (~1,500 m)' },
+  { hpa: '500hPa', label: '500 hPa (~5,500 m)' },
+  { hpa: '250hPa', label: '250 hPa (~10,000 m)' },
 ];
 
-const timestamp = '20260519_0000';
+const ts = 1779062400; // Unix 时间戳，直接从 manifest 获取
 
 levels.forEach(({ hpa }) => {
   map.addSource(`wind-${hpa}`, {
     type: 'raster',
-    tiles: [`https://your-tiles-server.com/wind-tiles/${hpa}/{z}/{x}/{y}/${timestamp}.png`],
+    tiles: [`https://your-tiles-server.com/wind-tiles/${hpa}/{z}/{x}/{y}/${ts}.png`],
     tileSize: 256,
     minzoom: 3,
     maxzoom: 8
@@ -233,7 +211,7 @@ map.on('load', () => {
   map.addSource('wind', {
     type: 'raster',
     tiles: [
-      'https://your-tiles-server.com/wind-tiles/850hPa/{z}/{x}/{y}/20260519_0000.png'
+      'https://your-tiles-server.com/wind-tiles/850hPa/{z}/{x}/{y}/1779062400.png'
     ],
     tileSize: 256,
     minzoom: 3,
@@ -268,7 +246,7 @@ server {
 }
 ```
 
-瓦片 URL 即为：`http://tiles.example.com/wind-tiles/850hPa/{z}/{x}/{y}/20260519_0000.png`
+瓦片 URL：`http://tiles.example.com/wind-tiles/850hPa/{z}/{x}/{y}/1779062400.png`
 
 ### Python 一行启动（开发测试）
 
@@ -277,7 +255,7 @@ cd wind-toolkit
 python -m http.server 8080
 ```
 
-瓦片 URL：`http://localhost:8080/wind-tiles/850hPa/{z}/{x}/{y}/20260519_0000.png`
+瓦片 URL：`http://localhost:8080/wind-tiles/850hPa/{z}/{x}/{y}/1779062400.png`
 
 ## 完整示例
 
@@ -351,22 +329,17 @@ python -m http.server 8080
       zoom: 4
     });
 
-    function tsToName(ts) {
-      const d = new Date(ts * 1000);
-      const p = (n) => String(n).padStart(2, '0');
-      return `${d.getUTCFullYear()}${p(d.getUTCMonth()+1)}${p(d.getUTCDate())}_${p(d.getUTCHours())}${p(d.getUTCMinutes())}`;
-    }
-
     async function loadManifest() {
       const res = await fetch(`${TILE_BASE}/${currentLevel}/tiles_manifest.json`);
       const data = await res.json();
       timestamps = data.timestamps;
-      idx = timestamps.length - 1; // 默认显示最新时刻
+      idx = timestamps.length - 1;
     }
 
     function showFrame() {
-      const name = tsToName(timestamps[idx]);
-      const url = `${TILE_BASE}/${currentLevel}/{z}/{x}/{y}/${name}.png`;
+      // 时间戳即文件名，直接拼接
+      const ts = timestamps[idx];
+      const url = `${TILE_BASE}/${currentLevel}/{z}/{x}/{y}/${ts}.png`;
 
       const srcId = 'wind';
       const lyrId = 'wind-layer';
@@ -377,7 +350,7 @@ python -m http.server 8080
       map.addSource(srcId, { type: 'raster', tiles: [url], tileSize: 256, minzoom: 3, maxzoom: 8 });
       map.addLayer({ id: lyrId, type: 'raster', source: srcId, paint: { 'raster-opacity': 0.85 } });
 
-      const t = new Date(timestamps[idx] * 1000);
+      const t = new Date(ts * 1000);
       document.getElementById('time-label').textContent = t.toUTCString();
     }
 

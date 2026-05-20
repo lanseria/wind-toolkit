@@ -34,5 +34,5 @@ def beijing_to_utc(dt: datetime) -> datetime:
 
 
 def format_timestamp(dt: datetime) -> str:
-    """格式化时间戳为文件名安全的字符串。"""
-    return dt.strftime("%Y%m%d_%H%M")
+    """格式化时间戳为 Unix 秒数字符串，与 manifest 中的时间戳一致。"""
+    return str(int(dt.timestamp()))

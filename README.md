@@ -61,7 +61,7 @@ NOAA GFS 0.25° 8 层等压面 Wind → GRIB Filter 子集下载 → NetCDF (UGR
 - 风速色斑 alpha = 0.8，无数据区域全透明
 - 风向箭头白色 alpha = 0.5
 - Web Mercator 投影（EPSG:3857），zoom 3–8，256×256
-- 每个瓦片文件名按时间戳区分：`{z}/{x}/{y}/YYYYMMDD_HHMM.png`
+- 每个瓦片文件名按时间戳区分：`{z}/{x}/{y}/{unix_timestamp}.png`
 - 每层独立目录：`wind-tiles/850hPa/`、`wind-tiles/500hPa/` 等
 
 瓦片清单 `tiles_manifest.json` 格式（每层独立一份）：
@@ -179,10 +179,10 @@ outputs/
 wind-tiles/
   1000hPa/                    # 透明 XYZ 瓦片 + 清单
     tiles_manifest.json
-    {z}/{x}/{y}/YYYYMMDD_HHMM.png
+    {z}/{x}/{y}/1779062400.png
   850hPa/
     tiles_manifest.json
-    {z}/{x}/{y}/YYYYMMDD_HHMM.png
+    {z}/{x}/{y}/1779062400.png
   ...
 ```
 
