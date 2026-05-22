@@ -99,14 +99,16 @@ def _next_gfs_time() -> datetime:
     ) + timedelta(hours=latency)
 
 
-def run_scheduled(forecast_hours: int | None = None, level_hpa: int | None = None) -> None:
+def run_scheduled(forecast_hours: int | None = None) -> None:
     """按 GFS 数据发布周期智能调度。
 
     在每个 GFS 周期数据可用后自动运行流水线（00/06/12/18 UTC + 延迟），
-    而非固定间隔轮询。
+    而非固定间隔轮询。仅处理 850 hPa 层。
     """
+    level_hpa = 850
     logger.info(
-        f"GFS 智能调度模式启动，延迟 {config.GFS_LATENCY_HOURS} 小时。按 Ctrl+C 停止。"
+        f"GFS 智能调度模式启动，仅处理 {level_hpa} hPa 层，"
+        f"延迟 {config.GFS_LATENCY_HOURS} 小时。按 Ctrl+C 停止。"
     )
     while True:
         next_time = _next_gfs_time()
@@ -159,7 +161,7 @@ def main() -> None:
     args = parser.parse_args()
 
     if args.schedule:
-        run_scheduled(args.forecast_hours, args.level)
+        run_scheduled(args.forecast_hours)
     elif args.acquire_only:
         run_acquisition(args.forecast_hours, args.level)
     elif args.process_only:
