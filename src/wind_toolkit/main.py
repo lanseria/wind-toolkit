@@ -103,8 +103,10 @@ def run_scheduled(forecast_hours: int | None = None) -> None:
     """按 GFS 数据发布周期智能调度。
 
     在每个 GFS 周期数据可用后自动运行流水线（00/06/12/18 UTC + 延迟），
-    而非固定间隔轮询。仅处理 850 hPa 层。
+    而非固定间隔轮询。仅处理 850 hPa 层。执行前自动清理超过 2 天的旧数据。
     """
+    from .cleanup import cleanup_old_data
+
     level_hpa = 850
     logger.info(
         f"GFS 智能调度模式启动，仅处理 {level_hpa} hPa 层，"
@@ -125,6 +127,7 @@ def run_scheduled(forecast_hours: int | None = None) -> None:
 
         try:
             logger.info("----- GFS 数据更新，开始执行 -----")
+            cleanup_old_data(level_hpa)
             run_full_workflow(forecast_hours, level_hpa)
         except Exception as e:
             logger.error(f"流水线异常: {e}")
