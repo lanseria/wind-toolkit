@@ -64,7 +64,8 @@ docker compose run --rm app --level 500 --forecast-hours 6  # 仅处理单层
 - **数据源**: NOAA GFS 0.25° 预报数据，通过 NOMADS GRIB Filter API 按变量+区域+等压面子集下载，无需 API 密钥
 - **多层等压面**: 8 个等压面层独立下载、处理、输出，目录按 `{hpa}hPa` 分隔
 - **动态路径**: `config.py` 提供 `tile_dir_for_level()` / `textures_dir_for_level()` 等函数，按 hPa 值动态生成路径
-- **地理范围二级结构**: `DISPLAY_AREA`（展示范围）→ `DOWNLOAD_AREA`（下载缓冲，扩展 5°）
+- **地理范围二级结构**: `DISPLAY_AREA`（展示范围，默认全球）→ `DOWNLOAD_AREA`（下载缓冲，扩展 `BUFFER_DEGREES` 度，全球时自动 clamp 到地球边界）
+- **经度归一化**: GFS 数据经度可能为 0–360，`merge_and_crop()` 中自动归一化到 -180–180 以匹配展示区域
 - **自动周期检测**: 自动回溯查找最新可用 GFS 预报周期（通常延迟约 4 小时）
 - **智能调度**: `--schedule` 模式按 GFS 周期（00/06/12/18 UTC + 延迟）自动运行，非固定间隔轮询
 - **单层执行**: `--level 850` 仅处理指定等压面层，加速调试和按需使用

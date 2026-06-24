@@ -72,19 +72,21 @@ GFS_LATENCY_HOURS: int = int(os.getenv("GFS_LATENCY_HOURS", "4"))
 GFS_FORECAST_HOURS: int = int(os.getenv("GFS_FORECAST_HOURS", "24"))
 
 # ── 地理范围 ───────────────────────────────────────────────────────────
+# 全球覆盖：南纬 90° 到北纬 90°，经度 -180° 到 180°
 DISPLAY_AREA: dict[str, float] = {
-    "north": 54.0,
-    "south": 0.0,
-    "west": 70.0,
-    "east": 135.0,
+    "north": 90.0,
+    "south": -90.0,
+    "west": -180.0,
+    "east": 180.0,
 }
 
+# 下载区域缓冲（全球覆盖时缓冲自动被 clamp 到地球边界，等同于 DISPLAY_AREA）
 BUFFER_DEGREES: float = 5.0
 DOWNLOAD_AREA: dict[str, float] = {
-    "north": DISPLAY_AREA["north"] + BUFFER_DEGREES,
-    "south": DISPLAY_AREA["south"] - BUFFER_DEGREES,
-    "west": DISPLAY_AREA["west"] - BUFFER_DEGREES,
-    "east": DISPLAY_AREA["east"] + BUFFER_DEGREES,
+    "north": min(90.0, DISPLAY_AREA["north"] + BUFFER_DEGREES),
+    "south": max(-90.0, DISPLAY_AREA["south"] - BUFFER_DEGREES),
+    "west": max(-180.0, DISPLAY_AREA["west"] - BUFFER_DEGREES),
+    "east": min(180.0, DISPLAY_AREA["east"] + BUFFER_DEGREES),
 }
 
 # ── 时间配置 ───────────────────────────────────────────────────────────

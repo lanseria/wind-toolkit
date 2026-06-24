@@ -167,6 +167,14 @@ def merge_and_crop(files: list[Path], level: dict) -> Path:
     # 裁切到展示区域（注意纬度方向）
     lat_name = "latitude" if "latitude" in merged.dims else "lat"
     lon_name = "longitude" if "longitude" in merged.dims else "lon"
+
+    # GFS 经度可能是 0–360 范围，归一化到 -180–180 以匹配展示区域
+    lon_vals = merged[lon_name].values
+    if float(lon_vals.max()) > 180:
+        merged = merged.assign_coords(
+            {lon_name: (((merged[lon_name] + 180) % 360) - 180)}
+        ).sortby(lon_name)
+
     lat_vals = merged[lat_name].values
 
     display = config.DISPLAY_AREA
