@@ -1,4 +1,4 @@
-"""Wind Toolkit CLI 入口。
+"""Atmos Toolkit CLI 入口。
 
 支持多气象变量（wind/temp/rh/spfh/dpt/hgt/tcdc/lcdc/mcdc/hcdc/vis/apcp/prate/pres/prmsl/gust）。
 通过 `--variable/-v` 指定单变量，`--variables` 多变量，`--all-variables` 全部。
@@ -14,7 +14,7 @@ from pathlib import Path
 from . import config
 from .utils import setup_logger
 
-logger = setup_logger("wind_toolkit.main")
+logger = setup_logger("atmos_toolkit.main")
 
 
 def _get_levels(level_hpa: int | None = None) -> list[dict]:
@@ -160,7 +160,7 @@ def run_full_workflow(
         var_names = ["wind"]
 
     logger.info("=" * 60)
-    logger.info(f"Wind Toolkit 完整流水线启动（变量: {', '.join(var_names)}）")
+    logger.info(f"Atmos Toolkit 完整流水线启动（变量: {', '.join(var_names)}）")
 
     merged_files = run_acquisition(forecast_hours, var_names, level_hpa)
     if not merged_files:
@@ -241,7 +241,7 @@ def run_scheduled(
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Wind Toolkit - GFS 多气象变量地图可视化工具",
+        description="Atmos Toolkit - GFS 多气象变量地图可视化工具",
     )
     parser.add_argument(
         "--acquire-only", action="store_true", help="仅下载数据"

@@ -14,7 +14,7 @@ import xarray as xr
 from . import config
 from .utils import setup_logger
 
-logger = setup_logger("wind_toolkit.acquisition")
+logger = setup_logger("atmos_toolkit.acquisition")
 
 
 def _build_grib_filter_url(

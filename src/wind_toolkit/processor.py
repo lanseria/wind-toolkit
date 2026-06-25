@@ -21,7 +21,7 @@ from .tile_generator import (
 from .utils import format_timestamp, setup_logger
 from .wind_data_generator import generate_wind_particle_data
 
-logger = setup_logger("wind_toolkit.processor")
+logger = setup_logger("atmos_toolkit.processor")
 
 
 def _identify_nc_var(ds: xr.Dataset, var_cfg: dict) -> str | tuple[str, str]:

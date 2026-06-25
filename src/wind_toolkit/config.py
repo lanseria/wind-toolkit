@@ -1,4 +1,4 @@
-"""Wind Toolkit 全局配置。"""
+"""Atmos Toolkit 全局配置。"""
 
 import os
 from datetime import datetime, timezone, timedelta
@@ -20,7 +20,7 @@ RAW_DATA_DIR: Path = DATA_DIR / "raw"
 PROCESSED_DATA_DIR: Path = DATA_DIR / "processed"
 OUTPUTS_DIR: Path = PROJECT_ROOT.parent / "outputs"
 TEXTURES_DIR: Path = OUTPUTS_DIR / "textures"
-WIND_TILES_ROOT: Path = PROJECT_ROOT.parent / "wind-tiles"
+ATMOS_TILES_ROOT: Path = PROJECT_ROOT.parent / "atmos-tiles"
 
 # ── 等压面层定义 ───────────────────────────────────────────────────────
 PRESSURE_LEVELS: list[dict] = [
@@ -308,10 +308,10 @@ def _level_token(hpa: int | None, single_level_key: str | None) -> str:
 def tile_dir_for(
     var_name: str, hpa: int | None = None, single_level_key: str | None = None
 ) -> Path:
-    """瓦片目录：wind-tiles/{variable}/{level_token}/"""
+    """瓦片目录：atmos-tiles/{variable}/{level_token}/"""
     var_cfg = VARIABLES[var_name]
     sk = single_level_key or var_cfg.get("single_level_key")
-    return WIND_TILES_ROOT / var_name / _level_token(hpa, sk)
+    return ATMOS_TILES_ROOT / var_name / _level_token(hpa, sk)
 
 
 def tile_manifest_for(
@@ -381,7 +381,7 @@ def particle_data_dir_for_level(hpa: int) -> Path:
     return particle_data_dir_for("wind", hpa=hpa)  # type: ignore[return-value]
 
 
-for _d in (RAW_DATA_DIR, PROCESSED_DATA_DIR, TEXTURES_DIR, WIND_TILES_ROOT):
+for _d in (RAW_DATA_DIR, PROCESSED_DATA_DIR, TEXTURES_DIR, ATMOS_TILES_ROOT):
     _d.mkdir(parents=True, exist_ok=True)
 
 # ── GFS 数据源 ─────────────────────────────────────────────────────────

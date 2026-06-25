@@ -2,18 +2,18 @@ services:
   app:
     build: .
     pull_policy: never
-    image: wind-toolkit
-    container_name: wind-toolkit
+    image: atmos-toolkit
+    container_name: atmos-toolkit
     restart: unless-stopped
     volumes:
-      - wind-data:/app/data
-      - wind-outputs:/app/outputs
-      - ${TILES_HOST_PATH:-./wind-tiles}:/app/wind-tiles
+      - atmos-data:/app/data
+      - atmos-outputs:/app/outputs
+      - ${TILES_HOST_PATH:-./atmos-tiles}:/app/atmos-tiles
     env_file:
       - .env
     # 默认定时模式（--schedule 30），可通过 command 覆盖：
     # command: ["--forecast-hours", "48"]
 
 volumes:
-  wind-data:
-  wind-outputs:
+  atmos-data:
+  atmos-outputs:

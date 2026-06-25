@@ -16,7 +16,7 @@ from pathlib import Path
 from . import config
 from .utils import setup_logger
 
-logger = setup_logger("wind_toolkit.cleanup")
+logger = setup_logger("atmos_toolkit.cleanup")
 
 DEFAULT_MAX_AGE_DAYS = 2
 
@@ -37,11 +37,11 @@ def cleanup_old_data_for_variable(
         f"（截止时间戳: {cutoff}）"
     )
 
-    # 瓦片 PNG: wind-tiles/{var}/{level}/{z}/{x}/{y}/{timestamp}.png
+    # 瓦片 PNG: atmos-tiles/{var}/{level}/{z}/{x}/{y}/{timestamp}.png
     tile_dir = config.tile_dir_for(var_name, hpa=hpa, single_level_key=single_level_key)
     tile_count = _cleanup_timestamped_files(tile_dir, ".png", cutoff, recursive=True)
 
-    # 粒子 JSON: wind-tiles/{var}/{level}/particle/{timestamp}.json（仅风场）
+    # 粒子 JSON: atmos-tiles/{var}/{level}/particle/{timestamp}.json（仅风场）
     particle_dir = config.particle_data_dir_for(
         var_name, hpa=hpa, single_level_key=single_level_key
     )

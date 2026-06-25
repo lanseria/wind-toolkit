@@ -20,7 +20,7 @@ from scipy.ndimage import gaussian_filter
 from . import config
 from .utils import setup_logger
 
-logger = setup_logger("wind_toolkit.visualizer")
+logger = setup_logger("atmos_toolkit.visualizer")
 
 # ── 字体设置 ──────────────────────────────────────────────────────────
 CHINESE_FONT_FOUND = False

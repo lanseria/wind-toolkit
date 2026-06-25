@@ -1,1 +1,1 @@
-"""Wind Toolkit - ERA5 历史风力数据获取与 UV-PNG 纹理生成。"""
+"""Atmos Toolkit - GFS 多气象变量数据获取与地图可视化。"""

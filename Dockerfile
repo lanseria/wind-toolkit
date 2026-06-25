@@ -61,5 +61,5 @@ VOLUME /app/data
 VOLUME /app/outputs
 
 # --- 8. 入口 ---
-ENTRYPOINT ["python", "-m", "src.wind_toolkit.main"]
+ENTRYPOINT ["python", "-m", "src.atmos_toolkit.main"]
 CMD ["--schedule"]

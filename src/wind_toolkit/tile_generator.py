@@ -19,7 +19,7 @@ from scipy.ndimage import gaussian_filter
 from . import config
 from .utils import setup_logger
 
-logger = setup_logger("wind_toolkit.tiles")
+logger = setup_logger("atmos_toolkit.tiles")
 
 
 def tile_to_wgs84(

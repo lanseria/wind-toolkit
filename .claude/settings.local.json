@@ -2,16 +2,16 @@
   "permissions": {
     "allow": [
       "Bash(rm -rf data/raw/*.grib2* data/processed/wind_merged.nc outputs/textures/*)",
-      "Bash(.venv/Scripts/python.exe -m src.wind_toolkit.main --forecast-hours 2)",
+      "Bash(.venv/Scripts/python.exe -m src.atmos_toolkit.main --forecast-hours 2)",
       "Bash(rm -f outputs/textures/*)",
-      "Bash(.venv/Scripts/python.exe -m src.wind_toolkit.main --process-only)",
+      "Bash(.venv/Scripts/python.exe -m src.atmos_toolkit.main --process-only)",
       "Bash(uv run python -c ' *)",
       "Bash(grep -E \"^[0-9]+$\")",
       "WebSearch",
-      "Bash(git -C d:/code/wind-toolkit log --oneline -20)",
-      "Bash(python -c \"import xarray as xr; ds = xr.open_dataset\\('d:/code/wind-toolkit/data/processed/wind_merged.nc'\\); print\\('Dims:', dict\\(ds.dims\\)\\); print\\('Vars:', list\\(ds.data_vars\\)\\); print\\('Coords:', list\\(ds.coords\\)\\); print\\(\\); print\\(ds\\)\")",
-      "Bash(python -m src.wind_toolkit.main --level 850 --process-only)",
-      "Bash(python -m src.wind_toolkit.main --level 850 --acquire-only)",
+      "Bash(git -C d:/code/atmos-toolkit log --oneline -20)",
+      "Bash(python -c \"import xarray as xr; ds = xr.open_dataset\\('d:/code/atmos-toolkit/data/processed/wind_merged.nc'\\); print\\('Dims:', dict\\(ds.dims\\)\\); print\\('Vars:', list\\(ds.data_vars\\)\\); print\\('Coords:', list\\(ds.coords\\)\\); print\\(\\); print\\(ds\\)\")",
+      "Bash(python -m src.atmos_toolkit.main --level 850 --process-only)",
+      "Bash(python -m src.atmos_toolkit.main --level 850 --acquire-only)",
       "Bash(python -m json.tool)",
       "Bash(python -c ' *)"
     ]

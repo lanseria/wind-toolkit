@@ -1,4 +1,4 @@
-# Wind Toolkit
+# Atmos Toolkit
 
 GFS 多气象变量数据获取与地图可视化工具。从 NOAA GFS（Global Forecast System）0.25° 预报数据集下载 **16 种气象变量**（风场 U/V、温度、湿度、云量、能见度、降水、气压、阵风、位势高度等），生成暗色主题的精美气象地图 PNG，并切割为透明 XYZ 瓦片供 Web 地图叠加使用。
 
@@ -77,7 +77,7 @@ NOAA GFS 0.25° 气象变量 → GRIB Filter 子集下载 → NetCDF
 - **地理要素**：cartopy 海岸线、中国国界 shapefile、九段线
 - **辅助元素**：colorbar（按变量单位）、经纬度网格线、UTC/BJT 双时区标题、层级标注
 
-### 透明 XYZ 瓦片（`wind-tiles/{variable}/{level_token}/`）
+### 透明 XYZ 瓦片（`atmos-tiles/{variable}/{level_token}/`）
 
 仅包含数据色斑（风场含风向箭头）的透明 RGBA 瓦片，无底图、无标签、无地图要素，可直接叠加在任意 Web 地图底图上（Leaflet/Mapbox 等）。
 
@@ -85,7 +85,7 @@ NOAA GFS 0.25° 气象变量 → GRIB Filter 子集下载 → NetCDF
 - 风向箭头白色 alpha = 0.5（仅风场）
 - Web Mercator 投影（EPSG:3857），zoom 3–4，256×256
 - 每个瓦片文件名按时间戳区分：`{z}/{x}/{y}/{unix_timestamp}.png`
-- 每个变量+层级独立目录：`wind-tiles/wind/850hPa/`、`wind-tiles/temp/2m/`、`wind-tiles/tcdc/atmos/` 等
+- 每个变量+层级独立目录：`atmos-tiles/wind/850hPa/`、`atmos-tiles/temp/2m/`、`atmos-tiles/tcdc/atmos/` 等
 
 瓦片清单 `tiles_manifest.json` 格式（每个 variable+level 独立一份）：
 
@@ -125,7 +125,7 @@ NOAA GFS 0.25° 气象变量 → GRIB Filter 子集下载 → NetCDF
 ```bash
 # 克隆项目
 git clone <repo-url>
-cd wind-toolkit
+cd atmos-toolkit
 
 # 安装依赖
 uv sync
@@ -147,41 +147,41 @@ cp .env.example .env
 | `GFS_LATENCY_HOURS` | GFS 数据发布延迟（小时） | `4` |
 | `SCHEDULE_VARIABLES` | 调度模式下处理的变量列表（逗号分隔），如 `wind,temp,tcdc` | `wind` |
 | `NUM_WORKERS` | 并行工作进程数 | CPU 核数 / 2 |
-| `TILES_HOST_PATH` | 瓦片输出到宿主机的路径（Docker 部署用） | `./wind-tiles` |
+| `TILES_HOST_PATH` | 瓦片输出到宿主机的路径（Docker 部署用） | `./atmos-tiles` |
 | `MAP_DATA_ROOT` | 地图数据根目录（Docker 部署时设为 `/app`） | `../chromasky-toolkit` |
 
 ## 使用
 
 ```bash
 # 默认流程（风场所有等压面层：下载 + 生成地图 + 生成瓦片）
-python -m src.wind_toolkit.main
+python -m src.atmos_toolkit.main
 
 # 仅处理风场 850 hPa 层
-python -m src.wind_toolkit.main --level 850
+python -m src.atmos_toolkit.main --level 850
 
 # 处理温度 850 hPa 层
-python -m src.wind_toolkit.main -v temp --level 850
+python -m src.atmos_toolkit.main -v temp --level 850
 
 # 处理温度所有层级（8 等压面 + 2m）
-python -m src.wind_toolkit.main -v temp
+python -m src.atmos_toolkit.main -v temp
 
 # 处理多个变量
-python -m src.wind_toolkit.main --variables wind temp tcdc vis
+python -m src.atmos_toolkit.main --variables wind temp tcdc vis
 
 # 处理所有 16 个变量所有适用层级
-python -m src.wind_toolkit.main --all-variables
+python -m src.atmos_toolkit.main --all-variables
 
 # 仅下载数据
-python -m src.wind_toolkit.main --acquire-only
+python -m src.atmos_toolkit.main --acquire-only
 
 # 仅生成地图和瓦片（使用已有数据）
-python -m src.wind_toolkit.main --process-only
+python -m src.atmos_toolkit.main --process-only
 
 # 按 GFS 周期智能调度（00/06/12/18 UTC + 延迟后自动运行）
-python -m src.wind_toolkit.main --schedule
+python -m src.atmos_toolkit.main --schedule
 
 # 获取 48 小时预报
-python -m src.wind_toolkit.main --forecast-hours 48
+python -m src.atmos_toolkit.main --forecast-hours 48
 ```
 
 ## Docker 部署
@@ -227,7 +227,7 @@ outputs/
     wind/850hPa/{unix_ts}.png
     temp/2m/{unix_ts}.png
     tcdc/atmos/{unix_ts}.png
-wind-tiles/
+atmos-tiles/
   wind/850hPa/                          # 风场瓦片（含粒子数据）
     tiles_manifest.json
     particle/{unix_ts}.json
@@ -243,7 +243,7 @@ wind-tiles/
 ## 项目结构
 
 ```
-src/wind_toolkit/
+src/atmos_toolkit/
   config.py              # 全局配置：变量字典 VARIABLES、COLORMAPS、等压面层、路径函数
   data_acquisition.py    # NOMADS GRIB Filter 下载、自动周期检测、合并裁切
   processor.py           # NetCDF 加载、变量名识别、逐帧地图/瓦片生成调度

@@ -13,7 +13,7 @@ import numpy as np
 from . import config
 from .utils import setup_logger
 
-logger = setup_logger("wind_toolkit.particle")
+logger = setup_logger("atmos_toolkit.particle")
 
 
 def generate_wind_particle_data(
